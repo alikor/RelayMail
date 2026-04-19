@@ -1,0 +1,18 @@
+[package]
+name = "relaymail-email"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bytes = { workspace = true }
+chrono = { workspace = true }
+mailparse = { workspace = true }
+relaymail-core = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

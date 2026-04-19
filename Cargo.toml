@@ -1,0 +1,90 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/relaymail-core",
+    "crates/relaymail-email",
+    "crates/relaymail-delivery",
+    "crates/relaymail-aws",
+    "crates/relaymail-runtime",
+    "crates/relaymail-testing",
+    "apps/relaymail-email-ses",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.83"
+license = "MIT"
+repository = "https://github.com/alikor/RelayMail"
+authors = ["RelayMail Maintainers"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+# Correctness / footgun lints that apply equally well to tests.
+dbg_macro = "warn"
+todo = "warn"
+# Production-path discipline (unwrap/expect/panic) is enforced via review,
+# not lint rules, because clippy cannot cleanly skip test code.
+
+[workspace.dependencies]
+# async runtime
+tokio = { version = "1.42", features = ["macros", "rt-multi-thread", "signal", "time", "sync", "net", "io-util"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# data / serde
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bytes = "1.8"
+base64 = "0.22"
+sha2 = "0.10"
+uuid = { version = "1.11", features = ["v4", "v7", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
+# errors
+thiserror = "2.0"
+anyhow = "1.0"
+
+# observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.16", default-features = false }
+
+# HTTP
+axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "matched-path"] }
+tower = { version = "0.5", features = ["util"] }
+
+# config
+figment = { version = "0.10", features = ["env", "yaml", "toml"] }
+
+# email parsing
+mailparse = "0.15"
+
+# AWS SDK
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.60"
+aws-sdk-sqs = "1.50"
+aws-sdk-sesv2 = "1.55"
+aws-sdk-dynamodb = "1.55"
+aws-smithy-types = "1.2"
+aws-smithy-runtime-api = "1.7"
+
+# testing
+tokio-test = "0.4"
+
+# local workspace crates
+relaymail-core = { path = "crates/relaymail-core" }
+relaymail-email = { path = "crates/relaymail-email" }
+relaymail-delivery = { path = "crates/relaymail-delivery" }
+relaymail-aws = { path = "crates/relaymail-aws" }
+relaymail-runtime = { path = "crates/relaymail-runtime" }
+relaymail-testing = { path = "crates/relaymail-testing" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

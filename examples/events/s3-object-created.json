@@ -1,0 +1,25 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "eventTime": "2026-04-19T12:00:00.000Z",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "relaymail-notification",
+        "bucket": {
+          "name": "relaymail-inbound-example",
+          "arn": "arn:aws:s3:::relaymail-inbound-example"
+        },
+        "object": {
+          "key": "incoming/basic.eml",
+          "size": 287,
+          "eTag": "abc123def456",
+          "sequencer": "0A1B2C3D4E5F6789"
+        }
+      }
+    }
+  ]
+}

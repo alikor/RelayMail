@@ -1,0 +1,31 @@
+[package]
+name = "relaymail-aws"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+aws-config = { workspace = true }
+aws-sdk-dynamodb = { workspace = true }
+aws-sdk-s3 = { workspace = true }
+aws-sdk-sesv2 = { workspace = true }
+aws-sdk-sqs = { workspace = true }
+aws-smithy-runtime-api = { workspace = true }
+aws-smithy-types = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+relaymail-core = { workspace = true }
+relaymail-delivery = { workspace = true }
+relaymail-email = { workspace = true }
+relaymail-runtime = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

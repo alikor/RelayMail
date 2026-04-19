@@ -1,0 +1,27 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Env
+.env
+.env.local
+*.local.yaml
+
+# Coverage
+/coverage
+lcov.info
+*.profraw
+
+# Build artifacts
+/dist

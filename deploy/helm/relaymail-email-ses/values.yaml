@@ -1,0 +1,54 @@
+image:
+  repository: ghcr.io/alikor/relaymail-email-ses
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  name: relaymail-email-ses
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+
+env:
+  RELAYMAIL_ENVIRONMENT: production
+  RELAYMAIL_LOG_LEVEL: info
+  RELAYMAIL_LOG_JSON: "true"
+  RELAYMAIL_DRY_RUN: "false"
+  RELAYMAIL_AWS_REGION: us-east-1
+  RELAYMAIL_SQS_QUEUE_URL: ""
+  RELAYMAIL_S3_BUCKET_ALLOWLIST: ""
+  RELAYMAIL_IDEMPOTENCY_TABLE_NAME: ""
+  RELAYMAIL_WORKER_CONCURRENCY: "4"
+  RELAYMAIL_HTTP_BIND_ADDR: "0.0.0.0:8080"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+service:
+  type: ClusterIP
+  port: 8080
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  minAvailable: 1
+
+podSecurityContext:
+  runAsNonRoot: true
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]

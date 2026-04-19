@@ -1,0 +1,28 @@
+{
+  "version": "0",
+  "id": "eventbridge-event-0001",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-04-19T12:02:00Z",
+  "region": "us-east-1",
+  "resources": [
+    "arn:aws:s3:::relaymail-inbound-example"
+  ],
+  "detail": {
+    "version": "0",
+    "bucket": {
+      "name": "relaymail-inbound-example"
+    },
+    "object": {
+      "key": "incoming/eventbridge.eml",
+      "size": 640,
+      "etag": "eb111etag",
+      "sequencer": "0EB1B2C3D4E5F678"
+    },
+    "request-id": "EB-REQ-ID-0001",
+    "requester": "123456789012",
+    "source-ip-address": "10.0.0.1",
+    "reason": "PutObject"
+  }
+}

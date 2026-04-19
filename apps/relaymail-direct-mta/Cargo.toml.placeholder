@@ -1,0 +1,16 @@
+# Placeholder — not a real manifest. When this crate becomes real, rename
+# to Cargo.toml and add `apps/relaymail-direct-mta` to the root
+# [workspace.members] list.
+#
+# [package]
+# name = "relaymail-direct-mta"
+# version = "0.0.0"
+# edition.workspace = true
+# rust-version.workspace = true
+# license.workspace = true
+#
+# [dependencies]
+# relaymail-core     = { workspace = true }
+# relaymail-delivery = { workspace = true }
+# relaymail-runtime  = { workspace = true }
+# lettre             = "0.11"  # example SMTP client

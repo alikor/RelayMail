@@ -1,0 +1,21 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:relaymail-s3-events:00000000-0000-0000-0000-000000000000",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "sns-message-0001",
+        "TopicArn": "arn:aws:sns:us-east-1:123456789012:relaymail-s3-events",
+        "Subject": "Amazon S3 Notification",
+        "Message": "{\"Records\":[{\"eventVersion\":\"2.1\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"us-east-1\",\"eventTime\":\"2026-04-19T12:01:00.000Z\",\"eventName\":\"ObjectCreated:Put\",\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"relaymail-notification\",\"bucket\":{\"name\":\"relaymail-inbound-example\",\"arn\":\"arn:aws:s3:::relaymail-inbound-example\"},\"object\":{\"key\":\"incoming/sns-wrapped.eml\",\"size\":512,\"eTag\":\"sns111etag\",\"sequencer\":\"0SNSB2C3D4E5F678\"}}}]}",
+        "Timestamp": "2026-04-19T12:01:05.123Z",
+        "SignatureVersion": "1",
+        "Signature": "FAKE",
+        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/FAKE.pem",
+        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe"
+      }
+    }
+  ]
+}

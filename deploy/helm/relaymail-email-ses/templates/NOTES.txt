@@ -1,0 +1,12 @@
+RelayMail SES worker deployed.
+
+Endpoints (via `kubectl port-forward`):
+  GET /healthz   — liveness
+  GET /readyz    — readiness
+  GET /metrics   — Prometheus
+
+Required values to populate before production:
+  env.RELAYMAIL_SQS_QUEUE_URL
+  env.RELAYMAIL_S3_BUCKET_ALLOWLIST
+  env.RELAYMAIL_IDEMPOTENCY_TABLE_NAME
+  serviceAccount.annotations."eks.amazonaws.com/role-arn"

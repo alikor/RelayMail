@@ -1,0 +1,17 @@
+target/
+.git/
+.github/
+.idea/
+.vscode/
+.DS_Store
+*.swp
+coverage/
+docs/
+tests/integration/
+deploy/k8s/
+deploy/helm/
+deploy/terraform/
+examples/
+Cargo.lock.bak
+**/*.md
+!README.md

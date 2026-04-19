@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1.7
+# Multi-stage build — statically linked musl binary → scratch final image.
+
+FROM --platform=$BUILDPLATFORM rust:1.83-slim AS builder
+WORKDIR /build
+
+ARG TARGETARCH
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       musl-tools gcc-aarch64-linux-gnu ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Map Docker TARGETARCH to the musl Rust triple and install it.
+RUN case "${TARGETARCH}" in \
+        amd64) echo "x86_64-unknown-linux-musl"  > /rust_target ;; \
+        arm64) echo "aarch64-unknown-linux-musl"  > /rust_target ;; \
+        *)     echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && rustup target add "$(cat /rust_target)"
+
+COPY rust-toolchain.toml clippy.toml rustfmt.toml Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+COPY apps ./apps
+COPY examples ./examples
+
+# Cross-linker for aarch64-unknown-linux-musl; ignored when targeting amd64.
+ENV CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
+
+RUN TARGET="$(cat /rust_target)" \
+    && cargo build --release --target "$TARGET" --bin relaymail-email-ses \
+    && cp "target/$TARGET/release/relaymail-email-ses" /relaymail-email-ses
+
+FROM scratch
+
+LABEL org.opencontainers.image.title="relaymail-email-ses"
+LABEL org.opencontainers.image.description="RelayMail SES worker: S3 -> SQS -> SES v2"
+LABEL org.opencontainers.image.source="https://github.com/alikor/RelayMail"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# TLS root certificates needed by the AWS SDK.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /relaymail-email-ses /relaymail-email-ses
+
+# nobody/nogroup by numeric ID — scratch has no /etc/passwd.
+USER 65534:65534
+EXPOSE 8080
+ENTRYPOINT ["/relaymail-email-ses"]

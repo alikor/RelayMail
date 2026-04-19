@@ -1,0 +1,38 @@
+[package]
+name = "relaymail-email-ses"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RelayMail SES worker: S3 -> SQS -> SES v2 raw email relay."
+default-run = "relaymail-email-ses"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "relaymail-email-ses"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+aws-sdk-dynamodb = { workspace = true }
+aws-sdk-s3 = { workspace = true }
+aws-sdk-sesv2 = { workspace = true }
+aws-sdk-sqs = { workspace = true }
+chrono = { workspace = true }
+figment = { workspace = true }
+relaymail-aws = { workspace = true }
+relaymail-core = { workspace = true }
+relaymail-delivery = { workspace = true }
+relaymail-email = { workspace = true }
+relaymail-runtime = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+relaymail-testing = { workspace = true }

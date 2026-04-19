@@ -1,0 +1,37 @@
+# RelayMail SES worker YAML config example.
+# Loaded when RELAYMAIL_CONFIG_FILE points here. Env vars always override.
+service_name: relaymail-email-ses
+environment: local
+dry_run: false
+aws:
+  region: us-east-1
+  # endpoint_url: http://localhost:4566
+ses:
+  # configuration_set: relaymail-default
+  # source_arn: arn:aws:ses:us-east-1:123456789012:identity/example.com
+s3_filter:
+  bucket_allowlist: [relaymail-inbound-example]
+  prefix_allowlist: [incoming/]
+  supported_extensions: [.eml, .emi]
+  max_email_bytes: 10485760
+sqs:
+  queue_url: https://sqs.us-east-1.amazonaws.com/123456789012/relaymail-inbound
+  max_messages: 10
+  wait_time_seconds: 20
+  visibility_timeout_seconds: 300
+  visibility_extension_enabled: true
+processing:
+  success_mode: tag
+  failure_mode: tag
+  success_prefix: processed/
+  failure_prefix: failed/
+  delete_unsupported_messages: true
+  delete_invalid_email_messages: true
+runtime:
+  worker_concurrency: 4
+  http_bind_addr: 0.0.0.0:8080
+  shutdown_grace_period_seconds: 30
+  idempotency_ttl_seconds: 604800
+polling:
+  enabled: false
+  interval_seconds: 60

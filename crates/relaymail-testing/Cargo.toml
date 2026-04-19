@@ -1,0 +1,20 @@
+[package]
+name = "relaymail-testing"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+relaymail-core = { workspace = true }
+relaymail-delivery = { workspace = true }
+relaymail-email = { workspace = true }
+tokio = { workspace = true }
