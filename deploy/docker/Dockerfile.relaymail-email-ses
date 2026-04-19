@@ -11,15 +11,21 @@ RUN apt-get update \
        musl-tools gcc-aarch64-linux-gnu ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Map Docker TARGETARCH to the musl Rust triple and install it.
+# Copy toolchain file first so rustup materialises the correct stable version
+# before we add the musl target to it.
+COPY rust-toolchain.toml ./
+
+# Map Docker TARGETARCH to the musl Rust triple, then install the target for
+# whichever toolchain rust-toolchain.toml resolved to.
 RUN case "${TARGETARCH}" in \
         amd64) echo "x86_64-unknown-linux-musl"  > /rust_target ;; \
         arm64) echo "aarch64-unknown-linux-musl"  > /rust_target ;; \
         *)     echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
     esac \
+    && rustup show \
     && rustup target add "$(cat /rust_target)"
 
-COPY rust-toolchain.toml clippy.toml rustfmt.toml Cargo.toml Cargo.lock* ./
+COPY clippy.toml rustfmt.toml Cargo.toml Cargo.lock* ./
 COPY crates ./crates
 COPY apps ./apps
 COPY examples ./examples
