@@ -1,22 +1,36 @@
 # syntax=docker/dockerfile:1.7
 # Multi-stage build — statically linked musl binary → scratch final image.
+# cargo-zigbuild is used for cross-compilation: Zig bundles musl libc headers
+# for every target arch, eliminating the need for arch-specific sysroots.
 
-FROM --platform=$BUILDPLATFORM rust:1.83-slim AS builder
+FROM --platform=$BUILDPLATFORM rust:slim AS builder
 WORKDIR /build
 
 ARG TARGETARCH
 
+# cmake is required by aws-lc-sys (BoringSSL); curl+xz-utils fetch Zig.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       musl-tools gcc-aarch64-linux-gnu ca-certificates \
+       ca-certificates curl xz-utils cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy toolchain file first so rustup materialises the correct stable version
-# before we add the musl target to it.
+# Install Zig (provides musl headers for all target architectures).
+RUN ZIG_VERSION=0.13.0 \
+    && curl -sSfL \
+       "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz" \
+       -o /tmp/zig.tar.xz \
+    && tar -xJf /tmp/zig.tar.xz -C /usr/local/lib \
+    && ln -sf "/usr/local/lib/zig-linux-x86_64-${ZIG_VERSION}/zig" /usr/local/bin/zig \
+    && rm /tmp/zig.tar.xz
+
+# Install cargo-zigbuild (wraps cargo to route C compilation through zig cc).
+RUN cargo install cargo-zigbuild --locked
+
+# Copy the toolchain file first so rustup materialises the exact stable
+# version before we add the musl target component to it.
 COPY rust-toolchain.toml ./
 
-# Map Docker TARGETARCH to the musl Rust triple, then install the target for
-# whichever toolchain rust-toolchain.toml resolved to.
+# Map Docker TARGETARCH → musl Rust triple, install the stdlib for that target.
 RUN case "${TARGETARCH}" in \
         amd64) echo "x86_64-unknown-linux-musl"  > /rust_target ;; \
         arm64) echo "aarch64-unknown-linux-musl"  > /rust_target ;; \
@@ -30,12 +44,8 @@ COPY crates ./crates
 COPY apps ./apps
 COPY examples ./examples
 
-# Cross-linker for aarch64-unknown-linux-musl; ignored when targeting amd64.
-ENV CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc
-
 RUN TARGET="$(cat /rust_target)" \
-    && cargo build --release --target "$TARGET" --bin relaymail-email-ses \
+    && cargo zigbuild --release --target "$TARGET" --bin relaymail-email-ses \
     && cp "target/$TARGET/release/relaymail-email-ses" /relaymail-email-ses
 
 FROM scratch
