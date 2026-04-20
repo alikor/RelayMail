@@ -1,6 +1,6 @@
 image:
-  repository: ghcr.io/alikor/relaymail-email-ses
-  tag: "0.1.0"
+  repository: alikor/relaymail
+  tag: latest
   pullPolicy: IfNotPresent
 
 replicaCount: 2
