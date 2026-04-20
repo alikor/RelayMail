@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1.7
+# Multi-stage build — statically linked musl binary → scratch final image.
+# cargo-zigbuild cross-compiles for amd64/arm64 without arch-specific sysroots.
+
+FROM --platform=$BUILDPLATFORM rust:slim AS builder
+WORKDIR /build
+
+ARG TARGETARCH
+
+# cmake required by aws-lc-sys; curl+xz-utils fetch Zig.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates curl xz-utils cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ZIG_VERSION=0.13.0 \
+    && curl -sSfL \
+       "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz" \
+       -o /tmp/zig.tar.xz \
+    && tar -xJf /tmp/zig.tar.xz -C /usr/local/lib \
+    && ln -sf "/usr/local/lib/zig-linux-x86_64-${ZIG_VERSION}/zig" /usr/local/bin/zig \
+    && rm /tmp/zig.tar.xz
+
+RUN cargo install cargo-zigbuild --locked
+
+COPY rust-toolchain.toml ./
+
+RUN case "${TARGETARCH}" in \
+        amd64) echo "x86_64-unknown-linux-musl"  > /rust_target ;; \
+        arm64) echo "aarch64-unknown-linux-musl"  > /rust_target ;; \
+        *)     echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && rustup show \
+    && rustup target add "$(cat /rust_target)"
+
+COPY clippy.toml rustfmt.toml Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+COPY apps ./apps
+COPY examples ./examples
+
+RUN TARGET="$(cat /rust_target)" \
+    && cargo zigbuild --release --target "$TARGET" --bin relaymail-operator \
+    && cp "target/$TARGET/release/relaymail-operator" /relaymail-operator
+
+FROM scratch
+
+LABEL org.opencontainers.image.title="relaymail-operator"
+LABEL org.opencontainers.image.description="RelayMail Kubernetes operator — manages RelayMailSes resources"
+LABEL org.opencontainers.image.source="https://github.com/alikor/RelayMail"
+LABEL org.opencontainers.image.licenses="MIT"
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /relaymail-operator /relaymail-operator
+
+USER 65534:65534
+ENTRYPOINT ["/relaymail-operator"]

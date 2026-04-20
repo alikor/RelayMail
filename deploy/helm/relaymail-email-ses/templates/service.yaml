@@ -7,8 +7,9 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   selector:
-    app.kubernetes.io/name: {{ include "relaymail-email-ses.name" . }}
+    {{- include "relaymail-email-ses.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: {{ .Values.service.port }}
       targetPort: http
+      protocol: TCP

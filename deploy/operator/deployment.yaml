@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: relaymail-operator
+  namespace: relaymail-system
+  labels:
+    app.kubernetes.io/name: relaymail-operator
+    app.kubernetes.io/part-of: relaymail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: relaymail-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: relaymail-operator
+        app.kubernetes.io/part-of: relaymail
+    spec:
+      serviceAccountName: relaymail-operator
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: operator
+          image: alikor/relaymail-operator:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: RUST_LOG
+              value: "relaymail_operator=info,kube_runtime=info,warn"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

@@ -8,6 +8,7 @@ members = [
     "crates/relaymail-runtime",
     "crates/relaymail-testing",
     "apps/relaymail-email-ses",
+    "apps/relaymail-operator",
 ]
 
 [workspace.package]

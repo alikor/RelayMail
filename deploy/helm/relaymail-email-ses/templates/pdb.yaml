@@ -1,0 +1,13 @@
+{{- if .Values.pdb }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "relaymail-email-ses.fullname" . }}
+  labels:
+    {{- include "relaymail-email-ses.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "relaymail-email-ses.selectorLabels" . | nindent 6 }}
+{{- end }}

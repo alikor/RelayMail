@@ -8,8 +8,10 @@ replicaCount: 2
 serviceAccount:
   create: true
   name: relaymail-email-ses
-  annotations:
-    eks.amazonaws.com/role-arn: ""
+  # Uncomment and set for IRSA on EKS:
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/relaymail-irsa
+  annotations: {}
 
 env:
   RELAYMAIL_ENVIRONMENT: production

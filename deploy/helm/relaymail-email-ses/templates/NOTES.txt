@@ -1,12 +1,18 @@
-RelayMail SES worker deployed.
+RelayMail SES worker deployed as release {{ .Release.Name }}.
 
-Endpoints (via `kubectl port-forward`):
-  GET /healthz   — liveness
-  GET /readyz    — readiness
-  GET /metrics   — Prometheus
+Endpoints (use `kubectl port-forward` to access locally):
+  kubectl port-forward svc/{{ include "relaymail-email-ses.fullname" . }} 8080:8080 -n {{ .Release.Namespace }}
 
-Required values to populate before production:
+  GET http://localhost:8080/healthz   # liveness
+  GET http://localhost:8080/readyz    # readiness
+  GET http://localhost:8080/metrics   # Prometheus
+
+Required values for production (set via --set or a values file):
   env.RELAYMAIL_SQS_QUEUE_URL
   env.RELAYMAIL_S3_BUCKET_ALLOWLIST
   env.RELAYMAIL_IDEMPOTENCY_TABLE_NAME
-  serviceAccount.annotations."eks.amazonaws.com/role-arn"
+  serviceAccount.annotations."eks\.amazonaws\.com/role-arn"
+
+To check status:
+  kubectl get deployment {{ include "relaymail-email-ses.fullname" . }} -n {{ .Release.Namespace }}
+  kubectl logs -l app.kubernetes.io/name={{ include "relaymail-email-ses.name" . }} -n {{ .Release.Namespace }} --tail=50

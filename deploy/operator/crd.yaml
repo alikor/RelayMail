@@ -1,0 +1,129 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: relaymailseses.relaymail.io
+spec:
+  group: relaymail.io
+  names:
+    kind: RelayMailSes
+    listKind: RelayMailSesList
+    plural: relaymailseses
+    singular: relaymailses
+    shortNames: ["rms"]
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Ready
+          type: string
+          jsonPath: .status.ready
+        - name: Replicas
+          type: integer
+          jsonPath: .status.readyReplicas
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [config]
+              properties:
+                image:
+                  type: object
+                  properties:
+                    repository:
+                      type: string
+                      default: alikor/relaymail
+                    tag:
+                      type: string
+                      default: latest
+                    pullPolicy:
+                      type: string
+                      default: IfNotPresent
+                replicas:
+                  type: integer
+                  default: 2
+                  minimum: 1
+                config:
+                  type: object
+                  required: [sqsQueueUrl, s3BucketAllowlist]
+                  properties:
+                    awsRegion:
+                      type: string
+                      default: us-east-1
+                    sqsQueueUrl:
+                      type: string
+                    s3BucketAllowlist:
+                      type: string
+                    idempotencyTableName:
+                      type: string
+                    workerConcurrency:
+                      type: string
+                      default: "4"
+                    dryRun:
+                      type: string
+                      default: "false"
+                    logLevel:
+                      type: string
+                      default: info
+                    logJson:
+                      type: string
+                      default: "true"
+                    awsEndpointUrl:
+                      type: string
+                serviceAccount:
+                  type: object
+                  properties:
+                    create:
+                      type: boolean
+                      default: true
+                    irsaRoleArn:
+                      type: string
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                hpa:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    minReplicas:
+                      type: integer
+                      default: 2
+                    maxReplicas:
+                      type: integer
+                      default: 10
+                    targetCpuUtilizationPercentage:
+                      type: integer
+                      default: 70
+                pdb:
+                  type: object
+                  properties:
+                    minAvailable:
+                      type: integer
+                      default: 1
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
