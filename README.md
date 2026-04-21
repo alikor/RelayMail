@@ -261,6 +261,25 @@ All configuration is via environment variables prefixed `RELAYMAIL_`.
 | `RELAYMAIL_WORKER_CONCURRENCY` | No | `4` | Parallel message processing slots |
 | `RELAYMAIL_HTTP_BIND_ADDR` | No | `0.0.0.0:8080` | Address for health/metrics HTTP server |
 | `RELAYMAIL_AWS_ENDPOINT_URL` | No | — | Override AWS endpoint (LocalStack) |
+| `RELAYMAIL_SES_CONFIGURATION_SET` | No | — | Default SES configuration set applied to every send. Per-message overrides via the `X-SES-CONFIGURATION-SET` header take precedence (see below). |
+
+### Per-message configuration set
+
+Producers can opt an individual message into a specific SES
+configuration set — separate from the worker-wide default — by setting
+the `X-SES-CONFIGURATION-SET` header on the `.eml`:
+
+```
+X-SES-CONFIGURATION-SET: my-transactional-config-set
+```
+
+RelayMail parses the header during validation and passes its value as
+`ConfigurationSetName` on the `SendEmail` call, overriding
+`RELAYMAIL_SES_CONFIGURATION_SET` for that one send. This is how
+downstream systems route subsets of traffic (e.g. transactional vs.
+marketing) to different configuration sets — and therefore different
+event destinations and reputation reporting — without cycling the
+worker.
 
 See [`examples/config/relaymail-email-ses.env.example`](examples/config/relaymail-email-ses.env.example)
 for the full list.

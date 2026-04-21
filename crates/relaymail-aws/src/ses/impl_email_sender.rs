@@ -21,7 +21,16 @@ impl EmailSender for SesSender {
             .map_err(|e| SendError::Validation(format!("build raw: {e}")))?;
         let content = EmailContent::builder().raw(raw).build();
         let mut call = self.client().send_email().content(content);
-        if let Some(cs) = &cfg.configuration_set {
+        // Per-email override (`X-SES-CONFIGURATION-SET` header) takes
+        // precedence over the static runtime default. Producers use
+        // this to route individual messages (e.g. transactional vs.
+        // future marketing) to different SES configuration sets and
+        // thus different event destinations, without a worker rollout.
+        let configuration_set = request
+            .metadata()
+            .configuration_set()
+            .or(cfg.configuration_set.as_deref());
+        if let Some(cs) = configuration_set {
             call = call.configuration_set_name(cs);
         }
         if let Some(s) = &cfg.source_arn {

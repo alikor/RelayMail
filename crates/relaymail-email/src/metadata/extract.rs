@@ -10,6 +10,7 @@ pub struct EmailMetadata {
     message_id: Option<String>,
     content_type: ContentType,
     size_bytes: u64,
+    configuration_set: Option<String>,
 }
 
 impl EmailMetadata {
@@ -25,6 +26,7 @@ impl EmailMetadata {
             message_id: headers.message_id().map(str::to_string),
             content_type: ContentType::from_header(headers.content_type()),
             size_bytes,
+            configuration_set: headers.configuration_set().map(str::to_string),
         }
     }
 
@@ -50,5 +52,13 @@ impl EmailMetadata {
 
     pub fn size_bytes(&self) -> u64 {
         self.size_bytes
+    }
+
+    /// Per-message SES configuration set, extracted from the
+    /// `X-SES-CONFIGURATION-SET` header. When `Some`, the SES adapter
+    /// uses this value in place of the runtime default so producers
+    /// can route individual messages to different event destinations.
+    pub fn configuration_set(&self) -> Option<&str> {
+        self.configuration_set.as_deref()
     }
 }
