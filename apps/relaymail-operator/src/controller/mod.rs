@@ -12,7 +12,10 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use futures::StreamExt;
-use kube::{runtime::{controller::Controller, watcher}, Api};
+use kube::{
+    runtime::{controller::Controller, watcher},
+    Api,
+};
 
 use crate::crd::RelayMailSes;
 

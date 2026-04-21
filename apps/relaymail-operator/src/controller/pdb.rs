@@ -1,11 +1,14 @@
 use k8s_openapi::api::policy::v1::{PodDisruptionBudget, PodDisruptionBudgetSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{LabelSelector, ObjectMeta};
 use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
-use kube::{Api, ResourceExt, api::{Patch, PatchParams}};
+use kube::{
+    api::{Patch, PatchParams},
+    Api, ResourceExt,
+};
 
+use super::owner_ref::{owner_ref, resource_labels, selector_labels};
 use crate::crd::RelayMailSes;
 use crate::error::Result;
-use super::owner_ref::{owner_ref, resource_labels, selector_labels};
 
 pub async fn reconcile(obj: &RelayMailSes, client: &kube::Client, ns: &str) -> Result<()> {
     let pdb = build(obj)?;

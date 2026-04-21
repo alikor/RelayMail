@@ -23,10 +23,7 @@ pub fn selector_labels(obj: &RelayMailSes) -> BTreeMap<String, String> {
             "app.kubernetes.io/name".to_string(),
             "relaymail-email-ses".to_string(),
         ),
-        (
-            "app.kubernetes.io/instance".to_string(),
-            obj.name_any(),
-        ),
+        ("app.kubernetes.io/instance".to_string(), obj.name_any()),
     ])
 }
 

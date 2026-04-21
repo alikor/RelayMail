@@ -2,11 +2,9 @@ use std::{sync::Arc, time::Duration};
 
 use kube::{runtime::controller::Action, ResourceExt};
 
+use super::{configmap, deployment, hpa, pdb, service, serviceaccount, status, Context};
 use crate::crd::RelayMailSes;
 use crate::error::{Error, Result};
-use super::{
-    configmap, deployment, hpa, pdb, service, serviceaccount, status, Context,
-};
 
 pub async fn reconcile(obj: Arc<RelayMailSes>, ctx: Arc<Context>) -> Result<Action> {
     let ns = obj

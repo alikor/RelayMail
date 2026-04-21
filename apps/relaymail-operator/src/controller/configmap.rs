@@ -2,11 +2,14 @@ use std::collections::BTreeMap;
 
 use k8s_openapi::api::core::v1::ConfigMap;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::{Api, api::{Patch, PatchParams}};
+use kube::{
+    api::{Patch, PatchParams},
+    Api,
+};
 
+use super::owner_ref::{configmap_name, owner_ref, resource_labels};
 use crate::crd::RelayMailSes;
 use crate::error::Result;
-use super::owner_ref::{configmap_name, owner_ref, resource_labels};
 
 pub async fn reconcile(obj: &RelayMailSes, client: &kube::Client, ns: &str) -> Result<()> {
     let cm = build(obj)?;

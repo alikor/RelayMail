@@ -3,11 +3,14 @@ use k8s_openapi::api::autoscaling::v2::{
     ResourceMetricSource,
 };
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::{Api, ResourceExt, api::{DeleteParams, Patch, PatchParams}};
+use kube::{
+    api::{DeleteParams, Patch, PatchParams},
+    Api, ResourceExt,
+};
 
+use super::owner_ref::{owner_ref, resource_labels};
 use crate::crd::RelayMailSes;
 use crate::error::Result;
-use super::owner_ref::{owner_ref, resource_labels};
 
 pub async fn reconcile(obj: &RelayMailSes, client: &kube::Client, ns: &str) -> Result<()> {
     let api: Api<HorizontalPodAutoscaler> = Api::namespaced(client.clone(), ns);

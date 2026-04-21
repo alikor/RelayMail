@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::{api::{Patch, PatchParams}, Api, ResourceExt};
+use kube::{
+    api::{Patch, PatchParams},
+    Api, ResourceExt,
+};
 use serde_json::json;
 
 use crate::crd::RelayMailSes;

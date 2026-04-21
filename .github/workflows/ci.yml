@@ -56,7 +56,7 @@ jobs:
       # docs/coverage.md for why and the path to raising the threshold.
       - run: |
           cargo llvm-cov --workspace --all-features \
-            --ignore-filename-regex 'relaymail-aws/src/(s3|sqs|ses|ddb|config)/|relaymail-runtime/src/(shutdown/signal|tracing_init)|relaymail-testing/src/fixtures' \
+            --ignore-filename-regex 'relaymail-aws/src/(s3|sqs|ses|ddb|config)/|relaymail-runtime/src/(shutdown/signal|tracing_init)|relaymail-testing/src/fixtures|apps/relaymail-operator/' \
             --fail-under-lines 70 \
             --show-missing-lines
 

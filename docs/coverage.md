@@ -24,8 +24,12 @@ that — this file explains why and the path to full compliance.
 - `relaymail-testing/src/fixtures/**` — pure `include_bytes!` /
   `include_str!` loaders consumed by tests elsewhere; no behaviour to
   exercise directly.
+- `apps/relaymail-operator/**` — Kubernetes controller bootstrap:
+  CRD/reconciler wiring against the `kube` client. Meaningful coverage
+  requires either mocking the kube API (brittle) or a kind/k3d-backed
+  integration harness, which is not part of the default CI build.
 
-With those exclusions applied, the workspace hits **~70.7% line
+With those exclusions applied, the workspace hits **~78.6% line
 coverage** today.
 
 Tests added to reach 70%:

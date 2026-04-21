@@ -2,11 +2,14 @@ use std::collections::BTreeMap;
 
 use k8s_openapi::api::core::v1::ServiceAccount;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::{Api, api::{Patch, PatchParams}};
+use kube::{
+    api::{Patch, PatchParams},
+    Api,
+};
 
+use super::owner_ref::{owner_ref, resource_labels, sa_name};
 use crate::crd::RelayMailSes;
 use crate::error::Result;
-use super::owner_ref::{owner_ref, resource_labels, sa_name};
 
 pub async fn reconcile(obj: &RelayMailSes, client: &kube::Client, ns: &str) -> Result<()> {
     if !obj.spec.service_account.create {
@@ -27,12 +30,7 @@ fn build(obj: &RelayMailSes) -> Result<ServiceAccount> {
         .irsa_role_arn
         .as_ref()
         .filter(|arn| !arn.is_empty())
-        .map(|arn| {
-            BTreeMap::from([(
-                "eks.amazonaws.com/role-arn".to_string(),
-                arn.clone(),
-            )])
-        });
+        .map(|arn| BTreeMap::from([("eks.amazonaws.com/role-arn".to_string(), arn.clone())]));
 
     Ok(ServiceAccount {
         metadata: ObjectMeta {
