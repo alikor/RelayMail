@@ -7,7 +7,7 @@ use super::addresses::Mailbox;
 /// `X-SES-CONFIGURATION-SET` header. Mirrored by SES's own documented
 /// header name — when present, it overrides the static default in
 /// `SesRuntimeConfig.configuration_set` per-email, which is how
-/// producers (e.g. JobVia backend-rs, identity-rs) opt individual
+/// producers opt individual
 /// messages into tracked delivery.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ParsedHeaders {

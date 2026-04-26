@@ -1,14 +1,14 @@
 # Provider adapter guide
 
-This is the checklist for adding a new delivery provider (Mailgun,
-Postmark, SparkPost, SendGrid, custom SMTP) to RelayMail without
+This is the checklist for adding a new delivery provider (Resend,
+Postmark, SMTP2GO, SparkPost, SendGrid, custom SMTP) to RelayMail without
 touching the domain core.
 
 ## Rules
 
 - Implement `relaymail_delivery::EmailSender`.
-- Put provider-specific SDK/HTTP/SMTP code in **one crate** named
-  `relaymail-<provider>` (e.g. `relaymail-mailgun`).
+- Put provider-specific SDK/HTTP/SMTP code in an adapter crate. The
+  current REST adapters live in `relaymail-providers`.
 - Do **not** introduce a dependency from `relaymail-core`,
   `relaymail-email`, or `relaymail-delivery` to that crate.
 - Add a `relaymail-<provider>` crate entry to the root
@@ -20,15 +20,15 @@ touching the domain core.
 ## Minimum files per new provider
 
 ```
-crates/relaymail-mailgun/
+crates/relaymail-providers/
   Cargo.toml
   src/
     lib.rs              # module decls + public re-exports (thin)
-    sender.rs           # MailgunSender struct + ctor + runtime config
+    sender.rs           # provider sender struct + ctor + runtime config
     request.rs          # pure fn that builds the HTTP request
     response.rs         # pure fn that maps the response -> SendResult
     error.rs            # pure fn that maps provider errors -> SendError
-    impl_email_sender.rs # #[async_trait] impl EmailSender for MailgunSender
+    impl_email_sender.rs # #[async_trait] impl EmailSender for the provider sender
 ```
 
 Each file stays under 100 physical lines (see
@@ -48,24 +48,24 @@ Each file stays under 100 physical lines (see
 
 ## Wiring into a binary
 
-- The binary (today, `relaymail-email-ses`; future, an API gateway)
-  decides which provider to use based on config.
+- The binary decides which provider chain to use based on global and
+  per-stream config.
 - The binary constructs the provider sender inside `wire/`:
 
 ```rust
-let sender: Arc<dyn EmailSender> = if cfg.provider == "mailgun" {
-    Arc::new(MailgunSender::new(...))
-} else {
-    Arc::new(SesSender::new(...))
-};
+let sender: Arc<dyn EmailSender> = Arc::new(RelayMailDeliveryService::new(
+    policy,
+    default_chain,
+    stream_chains,
+    transport_store,
+));
 ```
 
 ## Observability
 
 - Add a label value `provider=<name>` wherever `provider_label` is
   emitted; no new metric names, just a new label value.
-- Log fields stay the same; swap `ses_message_id` for a generic
-  `provider_message_id` if the provider id is not SES-specific.
+- Log fields stay generic: use `provider` and `provider_message_id`.
 
 ## Forbidden
 

@@ -6,7 +6,7 @@ use tracing::info;
 use super::consumer_loop::run_consumer;
 use crate::config::load;
 use crate::dry_run::log_dry_run_notice;
-use crate::wire::{build_aws_clients, build_pipeline, start_http_server};
+use crate::wire::{build_aws_clients, build_delivery, build_pipeline, start_http_server};
 
 pub async fn run() -> anyhow::Result<()> {
     let cfg = load(std::env::var("RELAYMAIL_CONFIG_FILE").ok().map(Into::into))?;
@@ -24,10 +24,17 @@ pub async fn run() -> anyhow::Result<()> {
     let readiness = Arc::new(ReadinessTracker::new());
     readiness.register("aws_clients");
     readiness.register("pipeline");
-    let _server = start_http_server(&cfg, readiness.clone(), shutdown.clone()).await?;
     let clients = build_aws_clients(&cfg).await;
     readiness.mark_ready("aws_clients");
-    let pipeline = Arc::new(build_pipeline(&cfg, &clients));
+    let delivery = build_delivery(&cfg, &clients)?;
+    let _server = start_http_server(
+        &cfg,
+        readiness.clone(),
+        shutdown.clone(),
+        delivery.store.clone(),
+    )
+    .await?;
+    let pipeline = Arc::new(build_pipeline(&cfg, &clients, delivery.sender.clone()));
     readiness.mark_ready("pipeline");
     info!(
         target: "relaymail_email_ses",

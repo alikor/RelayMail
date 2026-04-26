@@ -7,10 +7,13 @@ use metrics_exporter_prometheus::PrometheusHandle;
 
 use super::readiness::ReadinessTracker;
 
+use crate::webhooks::WebhookState;
+
 #[derive(Clone)]
 pub(crate) struct AppState {
     pub readiness: Arc<ReadinessTracker>,
     pub prometheus: Arc<PrometheusHandle>,
+    pub webhooks: Option<Arc<WebhookState>>,
 }
 
 pub(crate) async fn healthz() -> impl IntoResponse {

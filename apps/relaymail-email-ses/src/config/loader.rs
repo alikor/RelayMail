@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use super::aws::AwsConfig;
+use super::delivery::DeliveryConfig;
 use super::error::AppConfigError;
 use super::general::GeneralConfig;
 use super::polling::PollingConfig;
@@ -17,6 +18,7 @@ pub(crate) struct AppConfig {
     pub general: GeneralConfig,
     pub aws: AwsConfig,
     pub ses: SesConfig,
+    pub delivery: DeliveryConfig,
     pub s3_filter: S3FilterConfig,
     pub sqs: SqsConfig,
     pub processing: ProcessingConfig,
@@ -34,6 +36,7 @@ pub(crate) fn load(config_file: Option<PathBuf>) -> Result<AppConfig, AppConfigE
         general: GeneralConfig::from_flat(&flat),
         aws: AwsConfig::from_flat(&flat),
         ses: SesConfig::from_flat(&flat),
+        delivery: DeliveryConfig::from_flat(&flat),
         s3_filter: S3FilterConfig::from_flat(&flat),
         sqs: SqsConfig::from_flat(&flat)?,
         processing: ProcessingConfig::from_flat(&flat)?,

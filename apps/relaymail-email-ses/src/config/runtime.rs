@@ -9,6 +9,7 @@ pub(crate) struct RuntimeConfig {
     pub shutdown_grace_period_seconds: u64,
     pub idempotency_table_name: Option<String>,
     pub idempotency_ttl_seconds: u64,
+    pub transport_state_table_name: Option<String>,
 }
 
 impl RuntimeConfig {
@@ -29,6 +30,10 @@ impl RuntimeConfig {
                 .clone()
                 .filter(|s| !s.is_empty()),
             idempotency_ttl_seconds: flat.idempotency_ttl_seconds.unwrap_or(604800),
+            transport_state_table_name: flat
+                .transport_state_table_name
+                .clone()
+                .filter(|s| !s.is_empty()),
         })
     }
 }

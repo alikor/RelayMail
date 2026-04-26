@@ -11,6 +11,7 @@ pub mod s3;
 pub mod ses;
 pub mod sqs;
 pub mod tagging;
+pub mod transport;
 
 pub use self::config::load_shared_aws_config;
 pub use self::ddb::DynamoIdempotencyStore;
@@ -18,3 +19,4 @@ pub use self::events::{S3EventParser, S3ObjectEvent};
 pub use self::s3::S3ObjectStore;
 pub use self::ses::SesSender;
 pub use self::sqs::SqsConsumer;
+pub use self::transport::DynamoTransportStore;

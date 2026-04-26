@@ -29,6 +29,10 @@ fn classification_matrix() {
             ErrorClassification::PermanentRecipient,
         ),
         (
+            SendError::Suppressed("x".into()),
+            ErrorClassification::PermanentRecipient,
+        ),
+        (
             SendError::Validation("x".into()),
             ErrorClassification::Validation,
         ),

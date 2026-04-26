@@ -1,6 +1,8 @@
 use relaymail_core::{IdempotencyKey, TenantId};
 use relaymail_email::{EmailMetadata, RawEmail};
 
+use super::normalized::EmailSendRequest;
+
 /// Everything a provider adapter needs to send one raw email.
 #[derive(Clone, Debug)]
 pub struct SendRequest {
@@ -8,6 +10,7 @@ pub struct SendRequest {
     metadata: EmailMetadata,
     tenant: Option<TenantId>,
     idempotency_key: IdempotencyKey,
+    email: Option<EmailSendRequest>,
 }
 
 impl SendRequest {
@@ -17,11 +20,17 @@ impl SendRequest {
             metadata,
             tenant: None,
             idempotency_key,
+            email: None,
         }
     }
 
     pub fn with_tenant(mut self, tenant: TenantId) -> Self {
         self.tenant = Some(tenant);
+        self
+    }
+
+    pub fn with_email(mut self, email: EmailSendRequest) -> Self {
+        self.email = Some(email);
         self
     }
 
@@ -39,6 +48,10 @@ impl SendRequest {
 
     pub fn idempotency_key(&self) -> &IdempotencyKey {
         &self.idempotency_key
+    }
+
+    pub fn email(&self) -> Option<&EmailSendRequest> {
+        self.email.as_ref()
     }
 }
 

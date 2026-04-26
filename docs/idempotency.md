@@ -54,7 +54,7 @@ Mitigations RelayMail applies today:
 
 - `UpdateItem` to `sent` runs immediately after SES success — the
   window is typically milliseconds.
-- The object tag `relaymail-ses-message-id=<id>` is written right after
+- The object tag `relaymail-provider-message-id=<id>` is written right after
   the `UpdateItem`, so operators can reconcile by SES message id if
   they see unexpected duplicates.
 - Move mode (`RELAYMAIL_PROCESSING_SUCCESS_MODE=move`) makes reprocess

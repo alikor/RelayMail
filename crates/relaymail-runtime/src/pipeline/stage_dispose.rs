@@ -8,12 +8,13 @@ pub(crate) async fn on_success(
     store: &dyn ObjectStore,
     cfg: &ProcessingConfig,
     object: &ObjectId,
+    provider_label: &str,
     send_message_id: &str,
     processed_at: &str,
 ) -> Result<(), StageError> {
     match cfg.success_mode {
         SuccessDispositionMode::Tag => {
-            let tags = success_tags(cfg, send_message_id, processed_at);
+            let tags = success_tags(cfg, provider_label, send_message_id, processed_at);
             store.tag(object, &tags).await?;
         }
         SuccessDispositionMode::Move => {
@@ -49,12 +50,12 @@ pub(crate) async fn on_failure(
     Ok(())
 }
 
-fn success_tags(cfg: &ProcessingConfig, msg_id: &str, ts: &str) -> TagSet {
+fn success_tags(cfg: &ProcessingConfig, provider_label: &str, msg_id: &str, ts: &str) -> TagSet {
     let mut tags = TagSet::new();
     tags.insert("relaymail-status", "sent");
     tags.insert("relaymail-service", cfg.service_name.clone());
-    tags.insert("relaymail-provider", cfg.provider_label.clone());
-    tags.insert("relaymail-ses-message-id", truncate(msg_id, 256));
+    tags.insert("relaymail-provider", provider_label.to_string());
+    tags.insert("relaymail-provider-message-id", truncate(msg_id, 256));
     tags.insert("relaymail-processed-at", ts.to_string());
     tags
 }

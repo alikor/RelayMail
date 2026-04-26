@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "worker" {
   dynamic "statement" {
     for_each = var.enable_idempotency_table ? [1] : []
     content {
-      sid    = "Dynamo"
+      sid    = "DynamoIdempotency"
       effect = "Allow"
       actions = [
         "dynamodb:GetItem",
@@ -43,6 +43,21 @@ data "aws_iam_policy_document" "worker" {
         "dynamodb:DeleteItem",
       ]
       resources = [aws_dynamodb_table.relaymail_idempotency[0].arn]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_transport_state_table ? [1] : []
+    content {
+      sid    = "DynamoTransportState"
+      effect = "Allow"
+      actions = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+      ]
+      resources = [aws_dynamodb_table.relaymail_transport_state[0].arn]
     }
   }
 }

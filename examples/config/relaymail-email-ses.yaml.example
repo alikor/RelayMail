@@ -1,8 +1,28 @@
-# RelayMail SES worker YAML config example.
+# RelayMail email worker YAML config example.
 # Loaded when RELAYMAIL_CONFIG_FILE points here. Env vars always override.
-service_name: relaymail-email-ses
+service_name: relaymail-email
 environment: local
 dry_run: false
+primary_provider: resend
+fallback_providers: postmark,smtp2go
+fallback_enabled: true
+aws_ses_enabled: false
+provider_timeout_seconds: 10
+global_max_per_minute: 60
+streams: transactional,marketing
+stream_transactional_allowed_from_domains: mail.example.com
+stream_transactional_from_default: "Example <no-reply@mail.example.com>"
+stream_transactional_reply_to_default: "Support <support@mail.example.com>"
+stream_marketing_allowed_from_domains: news.example.com
+stream_marketing_from_default: "Example <updates@news.example.com>"
+stream_marketing_reply_to_default: "Marketing <reply@news.example.com>"
+stream_marketing_require_unsubscribe: true
+stream_marketing_require_consent_metadata: true
+resend_base_url: https://api.resend.com
+postmark_base_url: https://api.postmarkapp.com
+postmark_message_stream: outbound
+smtp2go_base_url: https://api.smtp2go.com/v3
+webhook_store_raw_payloads: false
 aws:
   region: us-east-1
   # endpoint_url: http://localhost:4566
@@ -32,6 +52,7 @@ runtime:
   http_bind_addr: 0.0.0.0:8080
   shutdown_grace_period_seconds: 30
   idempotency_ttl_seconds: 604800
+  transport_state_table_name: relaymail-transport-state
 polling:
   enabled: false
   interval_seconds: 60

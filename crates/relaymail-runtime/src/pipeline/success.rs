@@ -22,6 +22,11 @@ pub(crate) async fn on_send_success(
         ctx.object_store.as_ref(),
         &ctx.config,
         &object.object,
+        result
+            .metadata()
+            .get("provider")
+            .map(String::as_str)
+            .unwrap_or(&ctx.config.provider_label),
         result.provider_message_id(),
         &result.accepted_at().to_rfc3339(),
     )

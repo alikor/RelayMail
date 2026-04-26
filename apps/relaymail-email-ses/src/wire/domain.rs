@@ -1,17 +1,21 @@
 use std::sync::Arc;
 
 use relaymail_aws::ddb::{DynamoIdempotencyStore, DynamoIdempotencyStoreConfig};
-use relaymail_aws::ses::SesRuntimeConfig;
 use relaymail_aws::sqs::SqsConsumerConfig;
-use relaymail_aws::{S3EventParser, S3ObjectStore, SesSender, SqsConsumer};
+use relaymail_aws::{S3EventParser, S3ObjectStore, SqsConsumer};
 use relaymail_core::idempotency::{IdempotencyStore, InMemoryIdempotencyStore};
 use relaymail_core::{Clock, DispositionPolicy, SystemClock, TenantId};
+use relaymail_delivery::EmailSender;
 use relaymail_runtime::pipeline::{EventParser, PipelineCtx, ProcessingConfig};
 
 use super::aws::AwsClients;
 use crate::config::AppConfig;
 
-pub(crate) fn build_pipeline(cfg: &AppConfig, clients: &AwsClients) -> PipelineCtx {
+pub(crate) fn build_pipeline(
+    cfg: &AppConfig,
+    clients: &AwsClients,
+    email_sender: Arc<dyn EmailSender>,
+) -> PipelineCtx {
     let s3_store = Arc::new(S3ObjectStore::new(clients.s3.clone()));
     let sqs_consumer = Arc::new(SqsConsumer::new(
         clients.sqs.clone(),
@@ -20,15 +24,6 @@ pub(crate) fn build_pipeline(cfg: &AppConfig, clients: &AwsClients) -> PipelineC
             max_messages: cfg.sqs.max_messages,
             wait_time_seconds: cfg.sqs.wait_time_seconds,
             visibility_timeout_seconds: cfg.sqs.visibility_timeout_seconds,
-        },
-    ));
-    let ses_sender = Arc::new(SesSender::new(
-        clients.ses.clone(),
-        SesRuntimeConfig {
-            configuration_set: cfg.ses.configuration_set.clone(),
-            source_arn: cfg.ses.source_arn.clone(),
-            from_arn: cfg.ses.from_arn.clone(),
-            return_path_arn: cfg.ses.return_path_arn.clone(),
         },
     ));
     let idempotency_store: Arc<dyn IdempotencyStore> = match &cfg.runtime.idempotency_table_name {
@@ -49,13 +44,13 @@ pub(crate) fn build_pipeline(cfg: &AppConfig, clients: &AwsClients) -> PipelineC
         object_store: s3_store,
         message_source: sqs_consumer,
         idempotency_store,
-        email_sender: ses_sender,
+        email_sender,
         event_parser,
         clock,
         disposition_policy: DispositionPolicy::default(),
         config: Arc::new(ProcessingConfig {
             service_name: cfg.general.service_name.clone(),
-            provider_label: "ses".into(),
+            provider_label: "relay".into(),
             bucket_allowlist: cfg.s3_filter.bucket_allowlist.clone(),
             prefix_allowlist: cfg.s3_filter.prefix_allowlist.clone(),
             supported_extensions: cfg.s3_filter.supported_extensions.clone(),

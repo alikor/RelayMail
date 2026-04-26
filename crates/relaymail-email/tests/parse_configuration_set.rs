@@ -9,18 +9,18 @@ fn configuration_set_header_flows_through_metadata() {
     let raw = b"From: sender@example.com\r\n\
                 To: recipient@example.com\r\n\
                 Subject: config-set override\r\n\
-                X-SES-CONFIGURATION-SET: jobvia-transactional-poc\r\n\
+                X-SES-CONFIGURATION-SET: relaymail-transactional-poc\r\n\
                 \r\n\
                 body";
     let headers = parse_headers_only(raw).unwrap();
     assert_eq!(
         headers.configuration_set(),
-        Some("jobvia-transactional-poc")
+        Some("relaymail-transactional-poc")
     );
     let meta = EmailMetadata::from_headers(&headers, raw.len() as u64);
     assert_eq!(
         meta.configuration_set(),
-        Some("jobvia-transactional-poc"),
+        Some("relaymail-transactional-poc"),
         "metadata should carry the configuration set forward to the adapter"
     );
 }

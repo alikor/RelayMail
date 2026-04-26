@@ -9,6 +9,6 @@ Integration plan:
 
 - Accept submissions, validate via `relaymail-email`, persist to the
   object store under the conventional prefix, and rely on the existing
-  S3 → SQS → SES worker to deliver.
+  S3 → SQS email worker to deliver.
 - Reuse `relaymail-runtime` for health/metrics/shutdown/tracing.
 - Authenticate via IAM + in-cluster service identity.

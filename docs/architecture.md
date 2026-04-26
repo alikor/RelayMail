@@ -17,17 +17,20 @@ relaymail-core <- relaymail-email <- relaymail-delivery
                                   |
                                   v
                 apps/relaymail-email-ses  (composition root)
+                         |
+                         v
+                relaymail-providers (REST adapters)
 ```
 
 Capability traits live in the crate that consumes them. Implementations
 live in adapter crates (AWS, testing) and are wired in the binary only.
 
-## Current SES flow
+## Current provider-chain flow
 
 ```mermaid
 flowchart LR
     bucket[S3 bucket]
-    ses[SES v2]
+    providers[Resend / Postmark / SMTP2GO / optional SES]
     dlq[SQS DLQ]
 
     bucket -- ObjectCreated event --> sqs[SQS main queue]
@@ -35,7 +38,7 @@ flowchart LR
     worker -->|HEAD+GET| bucket
     worker -->|validate MIME| worker
     worker -->|claim| ddb[(DynamoDB idempotency)]
-    worker -->|SendEmail raw| ses
+    worker -->|provider chain send| providers
     worker -->|tag: relaymail-status=sent| bucket
     worker -->|DeleteMessage| sqs
     sqs -. maxReceiveCount exceeded .-> dlq
@@ -55,10 +58,10 @@ flowchart LR
     claim -- proceed --> send{Send}
     send -- transient --> nack
     send -- permanent --> tagFail[Tag failed + ack]
-    send -- success --> tagSent[Tag sent + ack]
+    send -- accepted --> tagSent[Tag sent + ack]
 ```
 
-## Future provider architecture
+## Provider architecture
 
 ```mermaid
 flowchart LR
@@ -69,10 +72,11 @@ flowchart LR
       iface[[EmailSender]]
     end
     pipeline --> iface
-    iface --> ses[relaymail-aws::ses SesSender]
-    iface --> mailgun[Future: MailgunSender]
-    iface --> smtp[Future: DirectMtaSender]
-    iface --> postmark[Future: PostmarkSender]
+    iface --> chain[RelayMailDeliveryService]
+    chain --> resend[relaymail-providers::ResendSender]
+    chain --> postmark[relaymail-providers::PostmarkSender]
+    chain --> smtp2go[relaymail-providers::Smtp2GoSender]
+    chain --> ses[relaymail-aws::ses SesSender]
 ```
 
 ## Future direct MTA architecture
@@ -85,7 +89,7 @@ self-managed SMTP stack, and reuses `relaymail-runtime`'s pipeline.
 
 - **Logs**: JSON-structured, one event per processed message with
   `service`, `environment`, `tenant_id`, `provider`, `sqs_message_id`,
-  `bucket`, key hash, size, idempotency-key hash, SES message id,
+  `bucket`, key hash, size, idempotency-key hash, provider message id,
   error class. Never the body, never full recipient addresses.
 - **Metrics**: Prometheus over `/metrics`. See
   [docs/operations.md](operations.md).

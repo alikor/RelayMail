@@ -2,7 +2,8 @@
 
 RelayMail worker that long-polls Amazon SQS for S3 `ObjectCreated`
 events, fetches each `.eml` / `.emi` object, validates it as raw
-RFC-5322 mail, and sends it via Amazon SES v2 `SendEmail` (raw mode).
+RFC-5322 mail, normalizes stream metadata, and sends it through the
+configured provider chain.
 
 ## Pipeline
 
@@ -14,7 +15,7 @@ S3 bucket
   -> S3 object fetch
   -> raw MIME validation
   -> idempotency claim (DynamoDB or in-memory)
-  -> Amazon SES v2 raw send
+  -> provider chain send
   -> S3 tag / move / delete / no-op disposition
   -> SQS message delete only after safe completion
 ```
@@ -34,6 +35,10 @@ Strongly recommended in production:
 - `RELAYMAIL_IDEMPOTENCY_TABLE_NAME` (DynamoDB) — otherwise the worker
   uses an **in-memory dedupe cache that is not safe across restarts
   or multiple replicas** and logs a warning.
+- `RELAYMAIL_TRANSPORT_STATE_TABLE_NAME` (DynamoDB) — otherwise send
+  attempts, webhook dedupe, and suppressions are process-local only.
+- Provider credentials for each configured provider, for example
+  `RESEND_API_KEY`, `POSTMARK_SERVER_TOKEN`, or `SMTP2GO_API_KEY`.
 
 ## AWS setup checklist
 
@@ -42,9 +47,10 @@ Strongly recommended in production:
       `.eml` / `.emi` prefix
 - [ ] SQS main queue + DLQ + redrive policy (`maxReceiveCount=5` is a
       good starting point)
-- [ ] SES identity verified (domain or from-address)
+- [ ] Sender domains verified with each enabled provider
 - [ ] DKIM published, SPF aligned, DMARC policy
 - [ ] DynamoDB table with `idempotency_key` hash key and TTL on `ttl`
+- [ ] DynamoDB transport-state table with `pk` hash key and `sk` range key
 - [ ] IRSA role with minimum IAM (see the Terraform example)
 
 ## Docker
@@ -63,12 +69,11 @@ kubectl apply -k deploy/k8s/relaymail-email-ses
 
 ## Failure handling
 
-- **Transient** failures (AWS throttles, network, SES temporary
-  rejection): the worker does **not** delete the SQS message. Visibility
-  timeout expires and SQS redelivers; redrive policy sends to DLQ after
-  `maxReceiveCount`.
+- **Transient** failures (provider throttle, network, timeout, HTTP 5xx):
+  the delivery service tries the next configured fallback provider before
+  returning a transient failure to the worker.
 - **Permanent** failures (invalid MIME, missing headers, oversized,
-  SES permanent reject): the worker tags the object with
+  provider permanent reject): the worker tags the object with
   `relaymail-status=failed` + `relaymail-error-class=<class>` and acks
   the SQS message.
 
@@ -83,6 +88,6 @@ crash-window caveat and operational reconciliation guidance.
 |---|---|
 | Worker doesn't pick up new files | SQS queue metrics, S3 bucket notification config, `RELAYMAIL_S3_BUCKET_ALLOWLIST` |
 | Messages stuck in SQS | Worker logs — look for `send failed` with a `transient` error class |
-| Duplicate SES sends | Is `RELAYMAIL_IDEMPOTENCY_TABLE_NAME` set in prod? Review DDB table TTL |
+| Duplicate provider sends | Is `RELAYMAIL_IDEMPOTENCY_TABLE_NAME` set in prod? Review DDB table TTL |
 | 503 on `/readyz` | Worker hasn't finished starting; check pod logs for startup errors |
 | No metrics scraped | Prometheus target scraping `/metrics` on port 8080 |

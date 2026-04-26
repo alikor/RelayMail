@@ -4,6 +4,7 @@ members = [
     "crates/relaymail-core",
     "crates/relaymail-email",
     "crates/relaymail-delivery",
+    "crates/relaymail-providers",
     "crates/relaymail-aws",
     "crates/relaymail-runtime",
     "crates/relaymail-testing",
@@ -43,6 +44,8 @@ base64 = "0.22"
 sha2 = "0.10"
 uuid = { version = "1.11", features = ["v4", "v7", "serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+hmac = "0.12"
+subtle = "2.6"
 
 # errors
 thiserror = "2.0"
@@ -57,6 +60,7 @@ metrics-exporter-prometheus = { version = "0.16", default-features = false }
 # HTTP
 axum = { version = "0.7", default-features = false, features = ["http1", "tokio", "matched-path"] }
 tower = { version = "0.5", features = ["util"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 # config
 figment = { version = "0.10", features = ["env", "yaml", "toml"] }
@@ -80,6 +84,7 @@ tokio-test = "0.4"
 relaymail-core = { path = "crates/relaymail-core" }
 relaymail-email = { path = "crates/relaymail-email" }
 relaymail-delivery = { path = "crates/relaymail-delivery" }
+relaymail-providers = { path = "crates/relaymail-providers" }
 relaymail-aws = { path = "crates/relaymail-aws" }
 relaymail-runtime = { path = "crates/relaymail-runtime" }
 relaymail-testing = { path = "crates/relaymail-testing" }

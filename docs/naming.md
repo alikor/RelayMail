@@ -9,7 +9,8 @@
 
 | Role | Human name | Binary / package | Status |
 |---|---|---|---|
-| SES raw sender | RelayMail SES | `relaymail-email-ses` | Implemented |
+| Email worker | RelayMail Email Worker | `relaymail-email-ses` | Implemented |
+| REST provider adapters | RelayMail Providers | `relaymail-providers` | Implemented |
 | Direct SMTP/MTA | RelayMail Direct MTA | `relaymail-direct-mta` | Placeholder |
 | Submission API | RelayMail API | `relaymail-api` | Placeholder |
 | Delivery-event pipeline | RelayMail Events | `relaymail-events` | Placeholder |
@@ -24,6 +25,7 @@ corresponds to exactly one concern:
 - `relaymail-email` — raw-MIME, validation, redaction
 - `relaymail-delivery` — `EmailSender` trait + result/error
 - `relaymail-aws` — AWS SDK adapter impls
+- `relaymail-providers` — Resend, Postmark, and SMTP2GO REST adapters
 - `relaymail-runtime` — HTTP health/metrics, tracing, worker, pipeline
 - `relaymail-testing` — fakes + fixtures (not published)
 
@@ -44,8 +46,8 @@ Tag keys RelayMail writes start with `relaymail-`:
 
 - `relaymail-status` — `sent` | `failed`
 - `relaymail-service` — e.g. `relaymail-email-ses`
-- `relaymail-provider` — e.g. `ses`
-- `relaymail-ses-message-id`
+- `relaymail-provider` — e.g. `resend`
+- `relaymail-provider-message-id`
 - `relaymail-error-class`
 - `relaymail-processed-at`
 

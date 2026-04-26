@@ -18,6 +18,42 @@ impl ProviderCapabilities {
             supports_custom_headers: true,
         }
     }
+
+    pub const fn resend() -> Self {
+        Self {
+            provider_label: "resend",
+            max_message_bytes: 40 * 1024 * 1024,
+            supports_raw_mime: false,
+            supports_custom_headers: true,
+        }
+    }
+
+    pub const fn postmark() -> Self {
+        Self {
+            provider_label: "postmark",
+            max_message_bytes: 10 * 1024 * 1024,
+            supports_raw_mime: false,
+            supports_custom_headers: true,
+        }
+    }
+
+    pub const fn smtp2go() -> Self {
+        Self {
+            provider_label: "smtp2go",
+            max_message_bytes: 50 * 1024 * 1024,
+            supports_raw_mime: false,
+            supports_custom_headers: true,
+        }
+    }
+
+    pub const fn relay_chain() -> Self {
+        Self {
+            provider_label: "relay",
+            max_message_bytes: 40 * 1024 * 1024,
+            supports_raw_mime: true,
+            supports_custom_headers: true,
+        }
+    }
 }
 
 #[cfg(test)]

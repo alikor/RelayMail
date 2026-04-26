@@ -1,6 +1,7 @@
 //! Configuration loading for `relaymail-email-ses`.
 
 pub(crate) mod aws;
+pub(crate) mod delivery;
 pub(crate) mod error;
 pub(crate) mod flat;
 pub(crate) mod general;

@@ -26,3 +26,9 @@ variable "enable_idempotency_table" {
   description = "Create a DynamoDB table for at-most-once delivery."
   default     = true
 }
+
+variable "enable_transport_state_table" {
+  type        = bool
+  description = "Create a DynamoDB table for send attempts, provider events, and suppressions."
+  default     = true
+}

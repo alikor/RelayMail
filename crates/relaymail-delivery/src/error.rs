@@ -20,6 +20,9 @@ pub enum SendError {
     #[error("invalid recipient: {0}")]
     InvalidRecipient(String),
 
+    #[error("recipient suppressed: {0}")]
+    Suppressed(String),
+
     #[error("transient provider failure: {0}")]
     Transient(String),
 
@@ -33,7 +36,9 @@ impl SendError {
             Self::Throttled(_) | Self::Transient(_) => ErrorClassification::Transient,
             Self::QuotaExceeded(_) | Self::Permanent(_) => ErrorClassification::PermanentSender,
             Self::AuthenticationFailure(_) => ErrorClassification::PermanentSender,
-            Self::InvalidRecipient(_) => ErrorClassification::PermanentRecipient,
+            Self::InvalidRecipient(_) | Self::Suppressed(_) => {
+                ErrorClassification::PermanentRecipient
+            }
             Self::Validation(_) => ErrorClassification::Validation,
         }
     }

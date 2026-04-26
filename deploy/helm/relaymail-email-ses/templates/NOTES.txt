@@ -1,4 +1,4 @@
-RelayMail SES worker deployed as release {{ .Release.Name }}.
+RelayMail email worker deployed as release {{ .Release.Name }}.
 
 Endpoints (use `kubectl port-forward` to access locally):
   kubectl port-forward svc/{{ include "relaymail-email-ses.fullname" . }} 8080:8080 -n {{ .Release.Namespace }}

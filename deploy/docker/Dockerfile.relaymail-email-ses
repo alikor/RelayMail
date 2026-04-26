@@ -51,7 +51,7 @@ RUN TARGET="$(cat /rust_target)" \
 FROM scratch
 
 LABEL org.opencontainers.image.title="relaymail-email-ses"
-LABEL org.opencontainers.image.description="RelayMail SES worker: S3 -> SQS -> SES v2"
+LABEL org.opencontainers.image.description="RelayMail email worker: S3 -> SQS -> provider chain"
 LABEL org.opencontainers.image.source="https://github.com/alikor/RelayMail"
 LABEL org.opencontainers.image.licenses="MIT"
 

@@ -2,7 +2,7 @@ use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Manages a RelayMail SES worker deployment and all its Kubernetes resources.
+/// Manages a RelayMail email worker deployment and all its Kubernetes resources.
 #[derive(CustomResource, Serialize, Deserialize, Debug, Clone, JsonSchema, PartialEq)]
 #[kube(
     group = "relaymail.io",

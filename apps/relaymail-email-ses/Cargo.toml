@@ -1,11 +1,11 @@
 [package]
 name = "relaymail-email-ses"
-version = "0.1.0"
+version = "1.0.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "RelayMail SES worker: S3 -> SQS -> SES v2 raw email relay."
+description = "RelayMail email worker: S3 -> SQS -> provider-chain email relay."
 default-run = "relaymail-email-ses"
 
 [lints]
@@ -28,6 +28,7 @@ relaymail-aws = { workspace = true }
 relaymail-core = { workspace = true }
 relaymail-delivery = { workspace = true }
 relaymail-email = { workspace = true }
+relaymail-providers = { workspace = true }
 relaymail-runtime = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

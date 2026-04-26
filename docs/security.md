@@ -11,7 +11,7 @@ The worker needs the actions listed in
   `sqs:GetQueueAttributes` — scoped to the worker's queue
 - `ses:SendEmail`, `ses:SendRawEmail`
 - `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `DeleteItem` — scoped to
-  the idempotency table
+  the idempotency and transport-state tables
 
 ## Credentials
 
@@ -23,21 +23,31 @@ The worker needs the actions listed in
   `~/.aws/credentials`, etc.). Point at LocalStack by setting
   `RELAYMAIL_AWS_ENDPOINT_URL=http://localhost:4566`.
 
-## SES deliverability
+## Provider Credentials
 
-RelayMail does not manage identity verification — do it outside the
-service. Before sending real mail, confirm:
+- Store Resend, Postmark, SMTP2GO, and optional SES credentials in the
+  environment or a secret manager. Never commit populated values.
+- Prefer least-privilege/scoped API keys where a provider supports them.
+- Provider tokens are never logged, returned to clients, or written to
+  object tags.
 
-- [ ] SES identity (domain or address) is verified
-- [ ] DKIM published as a CNAME set per SES console
-- [ ] SPF record lists `include:amazonses.com`
+## Deliverability
+
+RelayMail does not manage identity verification or DNS — do it outside
+the service for every configured stream domain and provider. Before
+sending real mail, confirm:
+
+- [ ] Sender domain is verified in each enabled provider
+- [ ] DKIM records are published for each provider/domain pair
+- [ ] SPF includes the active providers for the stream domain
 - [ ] DMARC policy is published (`p=none` initially, then tighten)
-- [ ] SES sending quota is out of the sandbox
-- [ ] Configuration set wired for engagement tracking if needed
+- [ ] Provider sending quotas/account approvals are complete
+- [ ] Transactional and marketing streams use separate domains where
+      desired
+- [ ] Marketing messages include unsubscribe and consent metadata
 
-Bounce and complaint handling is a future `relaymail-events` concern —
-until that ships, configure SES notifications to an SNS topic you
-monitor separately.
+Bounce, complaint, suppression, and unsubscribe webhooks are accepted at
+`/api/relaymail/webhooks/{provider}` and feed RelayMail suppressions.
 
 ## Redaction and logs
 
@@ -52,6 +62,10 @@ monitor separately.
 - No secrets in the repo.
 - `deploy/k8s/.../secret.template.yaml` is a template only and has an
   explicit "never commit a populated version" comment.
+- Webhook endpoints require provider-specific authentication before
+  payload parsing.
+- Sender domains and provider selection are configuration-controlled, not
+  arbitrary user input.
 - Container runs as non-root with `readOnlyRootFilesystem: true` and
   `capabilities.drop: [ALL]`.
 

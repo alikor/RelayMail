@@ -27,6 +27,7 @@ fn clone_err(err: &relaymail_delivery::SendError) -> relaymail_delivery::SendErr
         Validation(s) => Validation(s.clone()),
         AuthenticationFailure(s) => AuthenticationFailure(s.clone()),
         InvalidRecipient(s) => InvalidRecipient(s.clone()),
+        Suppressed(s) => Suppressed(s.clone()),
         Transient(s) => Transient(s.clone()),
         Permanent(s) => Permanent(s.clone()),
     }

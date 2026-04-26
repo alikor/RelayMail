@@ -19,3 +19,7 @@ output "worker_policy_arn" {
 output "idempotency_table_name" {
   value = var.enable_idempotency_table ? aws_dynamodb_table.relaymail_idempotency[0].name : null
 }
+
+output "transport_state_table_name" {
+  value = var.enable_transport_state_table ? aws_dynamodb_table.relaymail_transport_state[0].name : null
+}

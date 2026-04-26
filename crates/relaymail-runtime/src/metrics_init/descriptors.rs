@@ -5,11 +5,15 @@ pub(crate) const EMAILS_SENT_TOTAL: &str = "relaymail_emails_sent_total";
 pub(crate) const EMAIL_FAILURES_TOTAL: &str = "relaymail_email_failures_total";
 pub(crate) const S3_DOWNLOAD_BYTES_TOTAL: &str = "relaymail_s3_download_bytes_total";
 pub(crate) const SES_SEND_LATENCY_SECONDS: &str = "relaymail_ses_send_latency_seconds";
+pub(crate) const EMAIL_SEND_LATENCY_SECONDS: &str = "relaymail_send_latency_seconds";
 pub(crate) const SQS_MESSAGES_RECEIVED_TOTAL: &str = "relaymail_sqs_messages_received_total";
 pub(crate) const SQS_MESSAGES_DELETED_TOTAL: &str = "relaymail_sqs_messages_deleted_total";
 pub(crate) const PROCESSING_DURATION_SECONDS: &str = "relaymail_processing_duration_seconds";
 pub(crate) const IDEMPOTENCY_SKIPS_TOTAL: &str = "relaymail_idempotency_skips_total";
 pub(crate) const DRY_RUN_TOTAL: &str = "relaymail_dry_run_total";
+pub(crate) const WEBHOOK_RECEIVED_TOTAL: &str = "relaymail_webhook_received_total";
+pub(crate) const WEBHOOK_DUPLICATE_TOTAL: &str = "relaymail_webhook_duplicate_total";
+pub(crate) const SUPPRESSION_CREATED_TOTAL: &str = "relaymail_suppression_created_total";
 
 pub(crate) fn describe_all() {
     describe_counter!(EMAILS_PROCESSED_TOTAL, "Emails processed by outcome.");
@@ -21,7 +25,11 @@ pub(crate) fn describe_all() {
     );
     describe_histogram!(
         SES_SEND_LATENCY_SECONDS,
-        "SES send-call latency in seconds."
+        "Deprecated alias for provider send-call latency in seconds."
+    );
+    describe_histogram!(
+        EMAIL_SEND_LATENCY_SECONDS,
+        "Provider send-call latency in seconds."
     );
     describe_counter!(
         SQS_MESSAGES_RECEIVED_TOTAL,
@@ -40,4 +48,10 @@ pub(crate) fn describe_all() {
         "Already-claimed idempotency hits skipped."
     );
     describe_counter!(DRY_RUN_TOTAL, "Messages processed in dry-run mode.");
+    describe_counter!(WEBHOOK_RECEIVED_TOTAL, "Provider webhooks received.");
+    describe_counter!(
+        WEBHOOK_DUPLICATE_TOTAL,
+        "Duplicate provider webhooks skipped."
+    );
+    describe_counter!(SUPPRESSION_CREATED_TOTAL, "Suppression records created.");
 }

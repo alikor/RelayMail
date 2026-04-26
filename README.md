@@ -5,10 +5,9 @@ is to reliably dispatch prepared outbound messages through different delivery
 providers and delivery methods.
 
 This repository is a Rust Cargo workspace that ships with one production
-service today — **`relaymail-email-ses`** — and is designed so future
-services (direct SMTP/MTA sender, submission API, delivery-event pipeline,
-operator console) can plug into the same shared crates without disturbing
-the domain core.
+worker today — **`relaymail-email-ses`** — and is designed so provider
+adapters, submission APIs, delivery-event pipelines, and operator tooling
+can plug into the same shared crates without disturbing the domain core.
 
 ## What ships today
 
@@ -17,10 +16,11 @@ the domain core.
 | `crates/relaymail-core` | Implemented | Domain types + capability traits |
 | `crates/relaymail-email` | Implemented | Raw-MIME wrapper, validation, redaction |
 | `crates/relaymail-delivery` | Implemented | `EmailSender` provider trait + result/error |
-| `crates/relaymail-aws` | Implemented | AWS adapter impls (S3, SQS, SES v2, DynamoDB) |
+| `crates/relaymail-aws` | Implemented | AWS adapter impls (S3, SQS, optional SES v2, DynamoDB) |
+| `crates/relaymail-providers` | Implemented | Resend, Postmark, and SMTP2GO REST senders |
 | `crates/relaymail-runtime` | Implemented | HTTP health/metrics, tracing, worker, pipeline |
 | `crates/relaymail-testing` | Implemented | Fakes + fixtures used by workspace tests |
-| `apps/relaymail-email-ses` | Implemented | Worker binary: S3 → SQS → SES v2 |
+| `apps/relaymail-email-ses` | Implemented | Worker binary: S3 → SQS → provider chain |
 | `apps/relaymail-direct-mta` | Placeholder | Future SMTP/MTA sender |
 | `apps/relaymail-api` | Placeholder | Future submission API |
 | `apps/relaymail-events` | Placeholder | Future bounce/complaint/delivery pipeline |
@@ -30,9 +30,10 @@ the domain core.
 
 `relaymail-email-ses` long-polls SQS for S3 `ObjectCreated` events,
 downloads each object from S3, validates it as a raw RFC-5322 message,
-calls SES v2 `SendEmail` with the raw MIME, records the send in a
-DynamoDB-backed idempotency table (or an in-memory store for dev), tags
-the object with the outcome, then acks the SQS message.
+normalizes stream/sender/compliance metadata, sends through the configured
+provider chain, records idempotency and transport state in DynamoDB (or
+in-memory stores for dev), tags the object with the outcome, then acks the
+SQS message.
 
 See [docs/architecture.md](docs/architecture.md).
 
@@ -52,10 +53,15 @@ is through environment variables prefixed `RELAYMAIL_`:
 
 ```sh
 docker run --rm \
+  -e RELAYMAIL_PRIMARY_PROVIDER=resend \
+  -e RESEND_API_KEY=... \
+  -e RELAYMAIL_STREAM_TRANSACTIONAL_ALLOWED_FROM_DOMAINS=mail.example.com \
+  -e RELAYMAIL_STREAM_MARKETING_ALLOWED_FROM_DOMAINS=news.example.com \
   -e RELAYMAIL_AWS_REGION=us-east-1 \
   -e RELAYMAIL_SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/123456789012/my-queue \
   -e RELAYMAIL_S3_BUCKET_ALLOWLIST=my-email-bucket \
   -e RELAYMAIL_IDEMPOTENCY_TABLE_NAME=relaymail-idempotency \
+  -e RELAYMAIL_TRANSPORT_STATE_TABLE_NAME=relaymail-transport-state \
   -e AWS_ACCESS_KEY_ID=... \
   -e AWS_SECRET_ACCESS_KEY=... \
   -p 8080:8080 \
@@ -73,7 +79,8 @@ GET http://localhost:8080/metrics   # Prometheus exposition
 ### Dry-run mode
 
 Set `RELAYMAIL_DRY_RUN=true` to fetch and validate emails without calling
-SES. Useful for testing connectivity and message format before going live.
+any provider. Useful for testing connectivity and message format before
+going live.
 
 ---
 
@@ -90,11 +97,15 @@ services:
       - "8080:8080"
     environment:
       RELAYMAIL_AWS_REGION: us-east-1
+      RELAYMAIL_PRIMARY_PROVIDER: resend
+      RELAYMAIL_DRY_RUN: "true"
+      RELAYMAIL_STREAM_TRANSACTIONAL_ALLOWED_FROM_DOMAINS: mail.example.com
+      RELAYMAIL_STREAM_MARKETING_ALLOWED_FROM_DOMAINS: news.example.com
       RELAYMAIL_AWS_ENDPOINT_URL: http://localstack:4566
       RELAYMAIL_SQS_QUEUE_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/relaymail-queue
       RELAYMAIL_S3_BUCKET_ALLOWLIST: relaymail-emails
       RELAYMAIL_IDEMPOTENCY_TABLE_NAME: relaymail-idempotency
-      RELAYMAIL_DRY_RUN: "false"
+      RELAYMAIL_TRANSPORT_STATE_TABLE_NAME: relaymail-transport-state
       RELAYMAIL_LOG_JSON: "false"
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
@@ -254,35 +265,78 @@ All configuration is via environment variables prefixed `RELAYMAIL_`.
 | `RELAYMAIL_AWS_REGION` | Yes | — | AWS region |
 | `RELAYMAIL_SQS_QUEUE_URL` | Yes | — | SQS queue URL to long-poll |
 | `RELAYMAIL_S3_BUCKET_ALLOWLIST` | Yes | — | Comma-separated list of allowed S3 buckets |
-| `RELAYMAIL_IDEMPOTENCY_TABLE_NAME` | No | — | DynamoDB table name; in-memory store used if unset (dev only) |
+| `RELAYMAIL_IDEMPOTENCY_TABLE_NAME` | No | — | DynamoDB idempotency table; in-memory store used if unset (dev only) |
+| `RELAYMAIL_TRANSPORT_STATE_TABLE_NAME` | No | — | DynamoDB transport-state table for attempts, events, and suppressions; in-memory store used if unset (dev only) |
+| `RELAYMAIL_PRIMARY_PROVIDER` | No | `resend` | Primary provider: `resend`, `postmark`, `smtp2go`, or `ses` |
+| `RELAYMAIL_FALLBACK_PROVIDERS` | No | `postmark,smtp2go` | Ordered fallback providers |
+| `RELAYMAIL_FALLBACK_ENABLED` | No | `true` | Enables fallback for pre-acceptance transient provider failures |
+| `RELAYMAIL_AWS_SES_ENABLED` | No | `false` | Enables SES as an available provider |
+| `RESEND_API_KEY` | If Resend used | — | Resend API key |
+| `POSTMARK_SERVER_TOKEN` | If Postmark used | — | Postmark server token |
+| `SMTP2GO_API_KEY` | If SMTP2GO used | — | SMTP2GO API key |
+| `RELAYMAIL_STREAMS` | No | `transactional,marketing` | Enabled streams |
+| `RELAYMAIL_STREAM_TRANSACTIONAL_ALLOWED_FROM_DOMAINS` | Recommended | — | Comma-separated sender domains for transactional mail |
+| `RELAYMAIL_STREAM_MARKETING_ALLOWED_FROM_DOMAINS` | Recommended | — | Comma-separated sender domains for marketing mail |
+| `RELAYMAIL_STREAM_MARKETING_REQUIRE_UNSUBSCRIBE` | No | `true` | Reject marketing messages without unsubscribe metadata |
+| `RELAYMAIL_STREAM_MARKETING_REQUIRE_CONSENT_METADATA` | No | `true` | Reject marketing messages without consent metadata headers |
 | `RELAYMAIL_DRY_RUN` | No | `false` | Validate but skip SES send |
 | `RELAYMAIL_LOG_LEVEL` | No | `info` | Tracing level filter |
 | `RELAYMAIL_LOG_JSON` | No | `false` | Emit JSON logs (enable in production) |
 | `RELAYMAIL_WORKER_CONCURRENCY` | No | `4` | Parallel message processing slots |
 | `RELAYMAIL_HTTP_BIND_ADDR` | No | `0.0.0.0:8080` | Address for health/metrics HTTP server |
 | `RELAYMAIL_AWS_ENDPOINT_URL` | No | — | Override AWS endpoint (LocalStack) |
-| `RELAYMAIL_SES_CONFIGURATION_SET` | No | — | Default SES configuration set applied to every send. Per-message overrides via the `X-SES-CONFIGURATION-SET` header take precedence (see below). |
+| `RELAYMAIL_SES_CONFIGURATION_SET` | No | — | Default SES configuration set when SES is explicitly enabled. |
 
-### Per-message configuration set
+### Streams and compliance
 
-Producers can opt an individual message into a specific SES
-configuration set — separate from the worker-wide default — by setting
-the `X-SES-CONFIGURATION-SET` header on the `.eml`:
+RelayMail is a transport service. Upstream systems own contact lists,
+campaigns, templates, and consent collection. RelayMail enforces
+transport-level policy so configured streams do not accidentally send
+from unverified domains or omit required marketing compliance signals.
+
+Raw `.eml` producers can set:
 
 ```
-X-SES-CONFIGURATION-SET: my-transactional-config-set
+X-RelayMail-Stream: marketing
+X-RelayMail-Category: product-update
+X-RelayMail-Correlation-Id: upstream-request-id
+X-RelayMail-Unsubscribe-Url: https://example.com/unsubscribe/opaque-token
+X-RelayMail-Consent-Source: signup-form
 ```
 
-RelayMail parses the header during validation and passes its value as
-`ConfigurationSetName` on the `SendEmail` call, overriding
-`RELAYMAIL_SES_CONFIGURATION_SET` for that one send. This is how
-downstream systems route subsets of traffic (e.g. transactional vs.
-marketing) to different configuration sets — and therefore different
-event destinations and reputation reporting — without cycling the
-worker.
+Marketing streams require unsubscribe and consent headers by default.
+Transactional streams still enforce sender-domain allowlists,
+suppression checks, and safe custom headers.
+
+### Fallback behavior
+
+Fallback is only used when a provider fails before accepting the message:
+network failure, timeout, HTTP 5xx, or retryable throttling. RelayMail
+does not fallback after provider acceptance, validation errors, invalid
+recipients, suppressions, bounces, complaints, or unsubscribe events, to
+avoid duplicate email delivery.
+
+### Webhooks
+
+Register provider webhooks at:
+
+```
+POST /api/relaymail/webhooks/resend
+POST /api/relaymail/webhooks/postmark
+POST /api/relaymail/webhooks/smtp2go
+```
+
+Set `RESEND_WEBHOOK_SECRET`, `POSTMARK_WEBHOOK_USERNAME` /
+`POSTMARK_WEBHOOK_PASSWORD`, and `SMTP2GO_WEBHOOK_AUTH_TOKEN` to reject
+unauthenticated callbacks.
 
 See [`examples/config/relaymail-email-ses.env.example`](examples/config/relaymail-email-ses.env.example)
 for the full list.
+
+See [`docs/production-checklist.md`](docs/production-checklist.md) before
+enabling production traffic.
+
+Release notes are maintained in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
@@ -317,7 +371,7 @@ examples/  — .eml + event fixtures, config examples
 See [docs/naming.md](docs/naming.md). Short version:
 
 - Capability: `RelayMail`
-- First service: `RelayMail SES` / binary `relaymail-email-ses`
+- First worker binary: `relaymail-email-ses`
 - Env-var prefix: `RELAYMAIL_`
 - Metrics namespace: `relaymail_*`
 - S3 tag keys: `relaymail-*`
