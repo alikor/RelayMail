@@ -180,3 +180,228 @@ fn env_any(names: &[&str]) -> Option<String> {
         .iter()
         .find_map(|name| std::env::var(name).ok().filter(|v| !v.is_empty()))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+
+    use super::*;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct EnvGuard {
+        previous: Vec<(&'static str, Option<String>)>,
+    }
+
+    impl EnvGuard {
+        fn new(pairs: &[(&'static str, Option<&str>)]) -> Self {
+            let previous = pairs
+                .iter()
+                .map(|(name, _)| (*name, std::env::var(name).ok()))
+                .collect::<Vec<_>>();
+            for (name, value) in pairs {
+                match value {
+                    Some(value) => std::env::set_var(name, value),
+                    None => std::env::remove_var(name),
+                }
+            }
+            Self { previous }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (name, value) in &self.previous {
+                match value {
+                    Some(value) => std::env::set_var(name, value),
+                    None => std::env::remove_var(name),
+                }
+            }
+        }
+    }
+
+    fn isolated_env(pairs: &[(&'static str, Option<&str>)]) -> EnvGuard {
+        EnvGuard::new(pairs)
+    }
+
+    #[test]
+    fn defaults_to_resend_with_transactional_and_marketing_streams() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _env = isolated_env(&[
+            ("RESEND_API_KEY", None),
+            ("RELAYMAIL_RESEND_API_KEY", None),
+            ("POSTMARK_SERVER_TOKEN", None),
+            ("RELAYMAIL_POSTMARK_SERVER_TOKEN", None),
+            ("SMTP2GO_API_KEY", None),
+            ("RELAYMAIL_SMTP2GO_API_KEY", None),
+        ]);
+        let config = DeliveryConfig::from_flat(&FlatConfig::default());
+
+        assert_eq!(
+            config.default_provider_chain,
+            ["resend", "postmark", "smtp2go"]
+        );
+        assert_eq!(config.provider_timeout, Duration::from_secs(10));
+        assert_eq!(config.resend_base_url, "https://api.resend.com");
+        assert_eq!(config.postmark_base_url, "https://api.postmarkapp.com");
+        assert_eq!(config.smtp2go_base_url, "https://api.smtp2go.com/v3");
+        assert!(!config.aws_ses_enabled);
+        assert_eq!(config.policy.default_stream, "transactional");
+        assert!(config.policy.fallback_enabled);
+        assert_eq!(config.policy.global_max_per_minute, 60);
+
+        let transactional = config.policy.streams.get("transactional").unwrap();
+        assert_eq!(transactional.name, "transactional");
+        assert!(!transactional.require_unsubscribe);
+        assert!(!transactional.require_consent_metadata);
+
+        let marketing = config.policy.streams.get("marketing").unwrap();
+        assert_eq!(marketing.name, "marketing");
+        assert!(marketing.require_unsubscribe);
+        assert!(marketing.require_consent_metadata);
+        assert_eq!(config.postmark_message_streams["transactional"], "outbound");
+        assert_eq!(config.postmark_message_streams["marketing"], "outbound");
+    }
+
+    #[test]
+    fn stream_overrides_and_alias_secrets_are_loaded() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _env = isolated_env(&[
+            ("RESEND_API_KEY", None),
+            ("RELAYMAIL_RESEND_API_KEY", Some("resend-secret")),
+            ("POSTMARK_SERVER_TOKEN", None),
+            ("RELAYMAIL_POSTMARK_SERVER_TOKEN", Some("postmark-secret")),
+            ("SMTP2GO_API_KEY", None),
+            ("RELAYMAIL_SMTP2GO_API_KEY", Some("smtp2go-secret")),
+            ("RESEND_WEBHOOK_SECRET", None),
+            ("RELAYMAIL_RESEND_WEBHOOK_SECRET", Some("resend-hook")),
+            ("POSTMARK_WEBHOOK_USERNAME", Some("postmark-user")),
+            ("RELAYMAIL_POSTMARK_WEBHOOK_USERNAME", None),
+            ("POSTMARK_WEBHOOK_PASSWORD", Some("postmark-pass")),
+            ("RELAYMAIL_POSTMARK_WEBHOOK_PASSWORD", None),
+            ("SMTP2GO_WEBHOOK_AUTH_TOKEN", Some("smtp2go-hook")),
+            ("RELAYMAIL_SMTP2GO_WEBHOOK_AUTH_TOKEN", None),
+        ]);
+        let flat = FlatConfig {
+            primary_provider: Some("postmark".into()),
+            fallback_providers: Some(" smtp2go , resend ".into()),
+            aws_ses_enabled: Some(true),
+            provider_timeout_seconds: Some(7),
+            global_max_per_minute: Some(42),
+            streams: Some("Transactional,Marketing,Alerts".into()),
+            stream_transactional_allowed_from_domains: Some(
+                "Mail.Example.Com, mail2.example.com".into(),
+            ),
+            stream_transactional_from_default: Some("Example <no-reply@mail.example.com>".into()),
+            stream_transactional_reply_to_default: Some(
+                "Support <support@mail.example.com>".into(),
+            ),
+            stream_transactional_provider_chain: Some("resend,postmark".into()),
+            stream_marketing_allowed_from_domains: Some("news.example.com".into()),
+            stream_marketing_from_default: Some("Example <updates@news.example.com>".into()),
+            stream_marketing_provider_chain: Some("postmark,smtp2go".into()),
+            stream_marketing_require_unsubscribe: Some(true),
+            stream_marketing_require_consent_metadata: Some(true),
+            resend_base_url: Some("https://resend.test/".into()),
+            postmark_base_url: Some("https://postmark.test".into()),
+            postmark_message_stream: Some("default-stream".into()),
+            postmark_transactional_message_stream: Some("tx-stream".into()),
+            postmark_marketing_message_stream: Some("marketing-stream".into()),
+            smtp2go_base_url: Some("https://smtp2go.test/v3".into()),
+            webhook_store_raw_payloads: Some(true),
+            ..FlatConfig::default()
+        };
+
+        let config = DeliveryConfig::from_flat(&flat);
+
+        assert_eq!(
+            config.default_provider_chain,
+            ["postmark", "smtp2go", "resend", "ses"]
+        );
+        assert_eq!(config.provider_timeout, Duration::from_secs(7));
+        assert_eq!(config.policy.global_max_per_minute, 42);
+        assert_eq!(config.resend_api_key.as_deref(), Some("resend-secret"));
+        assert_eq!(
+            config.postmark_server_token.as_deref(),
+            Some("postmark-secret")
+        );
+        assert_eq!(config.smtp2go_api_key.as_deref(), Some("smtp2go-secret"));
+        assert_eq!(config.resend_base_url, "https://resend.test/");
+        assert_eq!(config.postmark_base_url, "https://postmark.test");
+        assert_eq!(config.smtp2go_base_url, "https://smtp2go.test/v3");
+        assert!(config.aws_ses_enabled);
+        assert!(config.webhook.store_raw_payloads);
+        assert_eq!(
+            config.webhook.auth.resend_secret.as_deref(),
+            Some("resend-hook")
+        );
+        assert_eq!(
+            config.webhook.auth.postmark_username.as_deref(),
+            Some("postmark-user")
+        );
+        assert_eq!(
+            config.webhook.auth.postmark_password.as_deref(),
+            Some("postmark-pass")
+        );
+        assert_eq!(
+            config.webhook.auth.smtp2go_auth_token.as_deref(),
+            Some("smtp2go-hook")
+        );
+        assert_eq!(
+            config.postmark_message_streams["transactional"],
+            "tx-stream"
+        );
+        assert_eq!(
+            config.postmark_message_streams["marketing"],
+            "marketing-stream"
+        );
+
+        let transactional = config.policy.streams.get("transactional").unwrap();
+        assert_eq!(
+            transactional.allowed_from_domains,
+            ["mail.example.com", "mail2.example.com"]
+        );
+        assert_eq!(
+            transactional.default_from.as_deref(),
+            Some("Example <no-reply@mail.example.com>")
+        );
+        assert_eq!(
+            transactional.default_reply_to.as_deref(),
+            Some("Support <support@mail.example.com>")
+        );
+        assert_eq!(transactional.provider_chain, ["resend", "postmark"]);
+
+        let marketing = config.policy.streams.get("marketing").unwrap();
+        assert_eq!(marketing.allowed_from_domains, ["news.example.com"]);
+        assert_eq!(
+            marketing.default_from.as_deref(),
+            Some("Example <updates@news.example.com>")
+        );
+        assert_eq!(marketing.provider_chain, ["postmark", "smtp2go"]);
+
+        let alerts = config.policy.streams.get("alerts").unwrap();
+        assert_eq!(
+            alerts.allowed_from_domains,
+            transactional.allowed_from_domains
+        );
+        assert_eq!(alerts.provider_chain, transactional.provider_chain);
+    }
+
+    #[test]
+    fn fallback_can_be_disabled_without_dropping_explicit_ses() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _env = isolated_env(&[]);
+        let flat = FlatConfig {
+            primary_provider: Some("smtp2go".into()),
+            fallback_providers: Some("resend,postmark".into()),
+            fallback_enabled: Some(false),
+            aws_ses_enabled: Some(true),
+            ..FlatConfig::default()
+        };
+
+        let config = DeliveryConfig::from_flat(&flat);
+
+        assert_eq!(config.default_provider_chain, ["smtp2go", "ses"]);
+        assert!(!config.policy.fallback_enabled);
+    }
+}

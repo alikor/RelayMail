@@ -98,3 +98,69 @@ fn truncate(value: &str, max: usize) -> String {
         value[..max].to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use relaymail_delivery::SendError;
+    use reqwest::StatusCode;
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn endpoint_trims_base_slash_and_keeps_path() {
+        assert_eq!(
+            endpoint("https://api.example.test/", "/email/send"),
+            "https://api.example.test/email/send"
+        );
+    }
+
+    #[test]
+    fn http_statuses_map_to_normalized_errors() {
+        let throttled = map_http_error("provider", StatusCode::TOO_MANY_REQUESTS, "");
+        assert!(matches!(throttled, SendError::Throttled(_)));
+
+        let timeout = map_http_error("provider", StatusCode::REQUEST_TIMEOUT, "later");
+        assert!(matches!(timeout, SendError::Transient(_)));
+
+        let server = map_http_error("provider", StatusCode::BAD_GATEWAY, "down");
+        assert!(matches!(server, SendError::Transient(_)));
+
+        let auth = map_http_error("provider", StatusCode::UNAUTHORIZED, "nope");
+        assert!(matches!(auth, SendError::AuthenticationFailure(_)));
+
+        let conflict = map_http_error(
+            "provider",
+            StatusCode::CONFLICT,
+            "concurrent_idempotent_requests",
+        );
+        assert!(matches!(conflict, SendError::Transient(_)));
+
+        let validation = map_http_error("provider", StatusCode::BAD_REQUEST, "bad payload");
+        assert!(matches!(validation, SendError::Validation(_)));
+
+        let permanent = map_http_error("provider", StatusCode::MULTIPLE_CHOICES, "odd");
+        assert!(matches!(permanent, SendError::Permanent(_)));
+    }
+
+    #[test]
+    fn provider_body_redacts_by_truncation() {
+        let body = "x".repeat(600);
+        let mapped = provider_body("provider", StatusCode::BAD_REQUEST, &body);
+        assert!(mapped.starts_with("provider: HTTP 400 Bad Request: "));
+        assert!(mapped.len() < body.len());
+    }
+
+    #[test]
+    fn json_string_and_safe_ascii_filter_values() {
+        let value = json!({"id":"abc","other":42});
+        assert_eq!(json_string(&value, "id").as_deref(), Some("abc"));
+        assert_eq!(json_string(&value, "other"), None);
+        assert_eq!(
+            safe_ascii("Campaign 01!_ok", 20).as_deref(),
+            Some("Campaign01_ok")
+        );
+        assert_eq!(safe_ascii("🙃", 20), None);
+        assert_eq!(safe_ascii("abcdef", 3).as_deref(), Some("abc"));
+    }
+}
