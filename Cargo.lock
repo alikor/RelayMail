@@ -2804,7 +2804,7 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "relaymail-aws"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -2829,7 +2829,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2845,7 +2845,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-delivery"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2860,7 +2860,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-email"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "bytes",
  "chrono",
@@ -2872,7 +2872,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-email-ses"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2897,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-operator"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "futures",
@@ -2914,7 +2914,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-providers"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2928,7 +2928,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-runtime"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2957,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "relaymail-testing"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "bytes",

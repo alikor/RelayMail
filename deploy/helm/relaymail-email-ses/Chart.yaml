@@ -2,7 +2,7 @@ apiVersion: v2
 name: relaymail-email-ses
 description: RelayMail email worker — S3 -> SQS -> provider chain.
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 1.0.1
+appVersion: "1.0.1"
 sources:
   - https://github.com/alikor/RelayMail

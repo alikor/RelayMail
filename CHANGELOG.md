@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.1
+
+Patch release for the `1.0.0` provider-agnostic RelayMail launch.
+
+### Fixed
+
+- Restored the CI coverage gate by adding tests for stream-aware delivery
+  configuration and normalized provider HTTP error mapping.
+
+### Notes
+
+- No runtime behavior changes from `1.0.0`.
+
 ## 1.0.0
 
 Major release: RelayMail is now a generic, provider-agnostic email
